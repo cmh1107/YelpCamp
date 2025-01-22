@@ -1,6 +1,7 @@
 if (process.env.Node_env !== 'production') {
     require('dotenv').config();
 }
+//require('dotenv').config();
 
 //require some library and moedels
 const express = require('express');
@@ -12,6 +13,9 @@ const path = require('path');
 const ExpressError = require('./utils/ExpressError');
 const session = require('express-session');
 const flash = require('connect-flash');
+const mongoSanitize = require('express-mongo-sanitize');
+const helmet = require('helmet');
+const MongoStore = require('connect-mongo');
 
 const campgroundRoutes = require('./routes/campgrounds');
 const reviewRoutes = require('./routes/review');
@@ -21,12 +25,15 @@ const passport = require('passport');
 const passportLocal = require('passport-local');
 const User = require('./models/user');
 
-
+//const dbUrl = 'mongodb://127.0.0.1:27017/yelp-camp';
+const dbUrl = process.env.MONGO_ATLAS;
 
 //connect to mongo database
 main().catch(err => console.log(err));
 async function main() {
-  await mongoose.connect('mongodb://127.0.0.1:27017/yelp-camp');
+//'mongodb://127.0.0.1:27017/yelp-camp'
+//dbUrl
+  await mongoose.connect(dbUrl);
   console.log("mongo sucessfully connected")
   // use `await mongoose.connect('mongodb://user:password@127.0.0.1:27017/test');` if your database has auth enabled
 }
@@ -39,13 +46,26 @@ app.set('views', path.join(__dirname, 'views'));
 //middleware
 app.use(express.urlencoded({extended: true}));
 app.use(methodOverride('_method'));
+app.use(mongoSanitize());
+app.use(helmet({contentSecurityPolicy: false}));//secure我们的网站不受攻击，但内容来源可以是外部
+
+const store = MongoStore.create({//不再依赖于默认的memory store，现在session存在了mongo数据库中，多了一个collection: session
+    mongoUrl: dbUrl,
+    touchAfter: 24 * 60 * 60,
+    crypto: {
+        secret: 'thisshouldbesecret!'
+    }
+});
 
 const sessionConfig = {
+    store,
+    name: 'happy', //如果不设定名字，那么默认就是session_id，这样很容易被人识别盗用，可以换个隐藏的名字
     secret:'thisshouldbeasecret',
     resave: false,
     saveUninitialized:true,
     cookie: {
-        httpOnly: true,
+        httpOnly: true,//only accessible over HTTP
+        //secure: true,
         expires: Date.now() + 1000 * 60 * 60 * 24 * 7,//一个星期后过期
         maxAge: 1000 * 60 * 60 * 24 * 7//最长保留时间
     }

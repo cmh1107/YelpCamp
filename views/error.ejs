@@ -3,7 +3,10 @@
     <div class="col-6 offset-3">
         <div class="alert alert-danger" role="alert">
             <h4 class="alert-heading"><%= err.message  %></h4>
-            <p><%= err.stack %></p>
+            <%if (process.env.NODE_ENV !== "production") {%>
+                <!-- 只有在不是最终用户实际使用的环境（生产环境）中时，才展示错误详细信息 -->
+                <p><%= err.stack %></p>
+            <%}%>
         </div>
     </div>
 </div>

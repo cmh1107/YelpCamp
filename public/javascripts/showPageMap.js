@@ -6,6 +6,8 @@ const map = new mapboxgl.Map({
   zoom: 10, // starting zoom
 });
 
+map.addControl(new mapboxgl.NavigationControl());
+
 const markerHeight = 50;
 const markerRadius = 10;
 const linearOffset = 25;
